@@ -1,0 +1,8 @@
+{
+  "name": "Wireguard Extension",
+  "description": "Activate deactivate wireguard connections.",
+  "uuid": "wireguard-extension@SJBERTRAND.github.com",
+  "shell-version": [
+    "47"
+  ]
+}
