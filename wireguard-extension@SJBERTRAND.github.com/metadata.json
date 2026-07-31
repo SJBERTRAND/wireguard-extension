@@ -1,8 +1,10 @@
 {
-  "name": "Wireguard Extension",
-  "description": "Activate deactivate wireguard connections.",
-  "uuid": "wireguard-extension@SJBERTRAND.github.com",
+  "name": "TestWireguard",
+  "description": "Test extension for wireguard",
+  "uuid": "org.local.testwireguard",
+  "gettext-domain": "org.local.testwireguard",
+  "settings-schema": "org.gnome.shell.extensions.org.local.testwireguard",
   "shell-version": [
-    "47"
+    "50"
   ]
 }
