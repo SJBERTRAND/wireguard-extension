@@ -28,7 +28,10 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 
 const WGIndicator = class {
-    constructor(){
+    constructor(settings,extensionObject,icon){
+        this.settings = settings,
+        this.extensionObject = extensionObject,
+        this.icon = icon
     };
 
     _create_switch(_menu,_connection,_client){
@@ -36,7 +39,7 @@ const WGIndicator = class {
         if (this._check_active(_connection.get_uuid(),_client)) {
             _wg_switch.setToggleState(true);
         };
-
+        
         _client.connect('connection-removed',(client,connection) => {
             if ( _connection.get_uuid() == connection.get_uuid() ){
                 _wg_switch.destroy();
@@ -61,12 +64,14 @@ const WGIndicator = class {
         _client.connect('active-connection-added',(client, active_connection) => {
             if (active_connection.get_uuid() == _connection.get_uuid() ){
                 _wg_switch.setToggleState(true);
+                this._update_icon(client);
             };     
         });
         
         _client.connect('active-connection-removed',(client, active_connection) => {
             if (active_connection.get_uuid() == _connection.get_uuid() ){
                 _wg_switch.setToggleState(false);
+                this._update_icon(client);
             };
         });
         
@@ -89,9 +94,26 @@ const WGIndicator = class {
         const active_connection = _active_connections.find(_connection => _connection.uuid == connection_uuid);
         return active_connection;
     };
+    
+    _update_icon(_client){
+        const _active_connections = _client.get_active_connections();
+        if (_active_connections.find(_connection => _connection.type == 'wireguard') ) {
+            //this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('active'));
+            if (this.settings.get_string('active') == 'wireguard-icon-active.svg'){
+                this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('active'));
+            }else{
+                this.icon.gicon = Gio.icon_new_for_string(this.settings.get_string('active'));
+            };
+        }else{
+            //this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('inactive'));
+            if (this.settings.get_string('inactive') == 'wireguard-icon-inactive.svg'){
+                this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('inactive'));
+            }else{
+                this.icon.gicon = Gio.icon_new_for_string(this.settings.get_string('inactive'));
+            };
+        };    
+    };
 }; // End of WGIndicator
-
-
 
 
 const Indicator = GObject.registerClass(
@@ -99,28 +121,46 @@ class Indicator extends PanelMenu.Button {
     _init(_client,_cleanup,_extension) {
         super._init(0.0, _('Wireguard Indicator'));
 
-        this.add_child(new St.Icon({
-            icon_name: 'face-smile-symbolic',
-            style_class: 'system-status-icon',
-        }));
+        // Getting the extension object by UUID
+        const extensionObject = Extension.lookupByUUID('org.local.testwireguard'); ///////////////////// Needs to match "uuid" in metadata
+
+        this.settings = extensionObject.getSettings('org.gnome.shell.extensions.org.local.testwireguard'); ///////////////////// Needs to match "settings-schema" in metadata
+
+        let icon = new St.Icon({
+                style_class: 'system-status-icon',
+        });
+        //icon.gicon = Gio.icon_new_for_string(`${extensionObject.path}/icons/`+this.settings.get_string('inactive'));
+        if (this.settings.get_string('inactive') == 'wireguard-icon-inactive.svg'){
+            icon.gicon = Gio.icon_new_for_string(`${extensionObject.path}/icons/`+this.settings.get_string('inactive'));
+        }else{
+            icon.gicon = Gio.icon_new_for_string(this.settings.get_string('inactive'));
+        };
+        
+        this.add_child(icon);
         
         this.menu.addAction(_('Settings'),
             () => _extension.openPreferences());
         
-        const wg_indicator = new WGIndicator();
+        const wg_indicator = new WGIndicator(this.settings,extensionObject,icon);
         
         _client.get_connections().forEach(item => {
             if ( item.is_type('wireguard') ){
                 wg_indicator._create_switch(this.menu,item,_client);
             };
         });
+        
+        wg_indicator._update_icon(_client,this.settings,extensionObject,icon);
 
         _client.connect('connection-added',(client,connection) => {
             wg_indicator._create_switch(this.menu,connection,client);
         });
         
-   
-    }
+        // Create signal when preferecen key is changed then update the icons
+        this.settings.connect('changed',() => {
+            wg_indicator._update_icon(_client,this.settings,extensionObject,icon);
+        });
+        
+    };
 });
 
 export default class IndicatorExampleExtension extends Extension {
