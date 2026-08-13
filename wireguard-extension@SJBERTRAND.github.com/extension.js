@@ -28,9 +28,9 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 
 const WGIndicator = class {
-    constructor(settings,extensionObject,icon){
+    constructor(settings,_extension,icon){
         this.settings = settings,
-        this.extensionObject = extensionObject,
+        this.extension = _extension,
         this.icon = icon
     };
 
@@ -98,16 +98,14 @@ const WGIndicator = class {
     _update_icon(_client){
         const _active_connections = _client.get_active_connections();
         if (_active_connections.find(_connection => _connection.type == 'wireguard') ) {
-            //this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('active'));
             if (this.settings.get_string('active') == 'wireguard-icon-active.svg'){
-                this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('active'));
+                this.icon.gicon = Gio.icon_new_for_string(`${this.extension.path}/icons/`+this.settings.get_string('active'));
             }else{
                 this.icon.gicon = Gio.icon_new_for_string(this.settings.get_string('active'));
             };
         }else{
-            //this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('inactive'));
             if (this.settings.get_string('inactive') == 'wireguard-icon-inactive.svg'){
-                this.icon.gicon = Gio.icon_new_for_string(`${this.extensionObject.path}/icons/`+this.settings.get_string('inactive'));
+                this.icon.gicon = Gio.icon_new_for_string(`${this.extension.path}/icons/`+this.settings.get_string('inactive'));
             }else{
                 this.icon.gicon = Gio.icon_new_for_string(this.settings.get_string('inactive'));
             };
@@ -121,17 +119,13 @@ class Indicator extends PanelMenu.Button {
     _init(_client,_cleanup,_extension) {
         super._init(0.0, _('Wireguard Indicator'));
 
-        // Getting the extension object by UUID
-        const extensionObject = Extension.lookupByUUID('org.local.testwireguard'); ///////////////////// Needs to match "uuid" in metadata
-
-        this.settings = extensionObject.getSettings('org.gnome.shell.extensions.org.local.testwireguard'); ///////////////////// Needs to match "settings-schema" in metadata
-
+        this.settings=_extension.getSettings();
+        
         let icon = new St.Icon({
                 style_class: 'system-status-icon',
         });
-        //icon.gicon = Gio.icon_new_for_string(`${extensionObject.path}/icons/`+this.settings.get_string('inactive'));
         if (this.settings.get_string('inactive') == 'wireguard-icon-inactive.svg'){
-            icon.gicon = Gio.icon_new_for_string(`${extensionObject.path}/icons/`+this.settings.get_string('inactive'));
+            icon.gicon = Gio.icon_new_for_string(`${_extension.path}/icons/`+this.settings.get_string('inactive'));
         }else{
             icon.gicon = Gio.icon_new_for_string(this.settings.get_string('inactive'));
         };
@@ -141,7 +135,7 @@ class Indicator extends PanelMenu.Button {
         this.menu.addAction(_('Settings'),
             () => _extension.openPreferences());
         
-        const wg_indicator = new WGIndicator(this.settings,extensionObject,icon);
+        const wg_indicator = new WGIndicator(this.settings,_extension,icon);
         
         _client.get_connections().forEach(item => {
             if ( item.is_type('wireguard') ){
@@ -149,22 +143,22 @@ class Indicator extends PanelMenu.Button {
             };
         });
         
-        wg_indicator._update_icon(_client,this.settings,extensionObject,icon);
+        wg_indicator._update_icon(_client);
 
-        _client.connect('connection-added',(client,connection) => {
+        const _connection_added_signal_id = _client.connect('connection-added',(client,connection) => {
             wg_indicator._create_switch(this.menu,connection,client);
         });
         
         // Create signal when preferecen key is changed then update the icons
-        this.settings.connect('changed',() => {
-            wg_indicator._update_icon(_client,this.settings,extensionObject,icon);
+        const _settings_changed_signal_id = this.settings.connect('changed',() => {
+            wg_indicator._update_icon(_client);
         });
         
     };
 });
 
 export default class IndicatorExampleExtension extends Extension {
-    enable() {
+    enable() {        
         this._cleanup = new Gio.Cancellable();
         this._client = NM.Client.new(this._cleanup);
         this._indicator = new Indicator(this._client,this._cleanup,this);
