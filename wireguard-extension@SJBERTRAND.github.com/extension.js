@@ -99,13 +99,13 @@ const WGIndicator = class {
         const _active_connections = _client.get_active_connections();
         if (_active_connections.find(_connection => _connection.type == 'wireguard') ) {
             if (this.settings.get_string('active') == 'wireguard-icon-active.svg'){
-                this.icon.gicon = Gio.icon_new_for_string(`${this.extension.path}/icons/`+this.settings.get_string('active'));
+                this.icon.gicon = Gio.icon_new_for_string(`${this.extension.path}/icons/${this.settings.get_string('active')}`);
             }else{
                 this.icon.gicon = Gio.icon_new_for_string(this.settings.get_string('active'));
             };
         }else{
             if (this.settings.get_string('inactive') == 'wireguard-icon-inactive.svg'){
-                this.icon.gicon = Gio.icon_new_for_string(`${this.extension.path}/icons/`+this.settings.get_string('inactive'));
+                this.icon.gicon = Gio.icon_new_for_string(`${this.extension.path}/icons/${this.settings.get_string('inactive')}`);
             }else{
                 this.icon.gicon = Gio.icon_new_for_string(this.settings.get_string('inactive'));
             };
@@ -125,7 +125,7 @@ class Indicator extends PanelMenu.Button {
                 style_class: 'system-status-icon',
         });
         if (this.settings.get_string('inactive') == 'wireguard-icon-inactive.svg'){
-            icon.gicon = Gio.icon_new_for_string(`${_extension.path}/icons/`+this.settings.get_string('inactive'));
+            icon.gicon = Gio.icon_new_for_string(`${_extension.path}/icons/${this.settings.get_string('inactive')}`);
         }else{
             icon.gicon = Gio.icon_new_for_string(this.settings.get_string('inactive'));
         };
