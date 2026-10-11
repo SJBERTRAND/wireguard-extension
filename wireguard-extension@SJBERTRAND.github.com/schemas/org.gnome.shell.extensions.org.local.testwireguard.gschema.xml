@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.org.local.testwireguard" path="/org/gnome/shell/extensions/org/local/testwireguard/">
+    <key name="inactive" type="s">
+      <default>'wireguard-icon-inactive.svg'</default>
+    </key>
+     <key name="active" type="s">
+      <default>'wireguard-icon-active.svg'</default>
+    </key>   
+     <key name="show-indicator" type="b">
+      <default>true</default>
+    </key> 
+    
+  </schema>
+</schemalist>
