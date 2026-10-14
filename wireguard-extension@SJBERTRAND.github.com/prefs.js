@@ -70,39 +70,53 @@ const WGPreferences = class {
                 suffixes: ['conf']
             });
             _file_select.set_default_filter(_file_filter);
-                
-            // Notify the user about the file format
-            const _warning_dialog = Adw.AlertDialog.new(_('The name of the WireGuard config must be a valid interface name followed by ".conf"'),
-            _('Change the file name if it fails to load') );
-            _warning_dialog.add_response('ok',_('OK'));
-            _warning_dialog.set_close_response('ok');
-            _warning_dialog.set_default_response('ok');
-            _warning_dialog.present(add_button);
-            _warning_dialog.connect('response',(dialog,response) => {
-                
-                //Create a signal to listen to connection added and when added remove the autoconnect
-                let _connect_signal = _client.connect('connection-added',(client, connection) =>{
-                    if ( connection.get_setting_connection().autoconnect){
-                        connection.get_setting_connection().autoconnect=false;
-                        connection.commit_changes_async(true,_cancel,null);
-                        };     
-                    _client.disconnect(_connect_signal);
-                    _connect_signal = null;
-                });
             
                 //Present the file chooser
-                _file_select.open(null,_cancel,(dialog, async_result)=>{                
+                _file_select.open(null,_cancel,(dialog, async_result)=>{
+                    
+                    //Create a signal to listen to connection is added and remove the autoconnect
+                    let _connect_signal = _client.connect('connection-added',(client, connection) =>{
+                        if ( connection.get_setting_connection().autoconnect){
+                            connection.get_setting_connection().autoconnect=false;
+                            connection.commit_changes_async(true,_cancel,null);
+                        };     
+                    });
+                   
                     const selected_file = _file_select.open_finish(async_result);
                     // Import the file through command line
                     const arg_command = [ 'nmcli', 'connection', 'import' , 'type' , 'wireguard', 'file', selected_file.get_path() ];
                 
                     const command_proc = new Gio.Subprocess({
                         argv: arg_command,
-                        flags: Gio.SubprocessFlags.NONE
+                        flags: Gio.SubprocessFlags.STDERR_PIPE
                     });
+                    //Run the process to add the connection
                     command_proc.init(null);
-                });
-            });
+                    
+                    //Wait for the process to finish
+                    command_proc.wait(null);
+                    
+                    // Assign lineBytes and length to the output of Gio.DAtaInputStream.read_line()
+                    const [lineBytes, length] = Gio.DataInputStream.new(command_proc.get_stderr_pipe()).read_line(null);
+                    
+                    //If the length is greater than zero it means that the stderr is not empty. Then display the value
+                    if (length > 0){
+                        // Convert lineBytes into a readable output 
+                        let error_msg = new TextDecoder().decode(lineBytes).trim();
+                        // Display the output
+                        let error_dialog = new Gtk.AlertDialog({
+                            message: 'Failed to import Wireguard configuration',
+                            detail: error_msg,
+                            modal: true,
+                        });
+                        error_dialog.show(null);
+                    };
+                    
+                    //Disconnect the signal to remove the autoconnect
+                    _client.disconnect(_connect_signal);
+                    _connect_signal = null;
+                    
+            }); //End of file chooser
         });
     };
     
