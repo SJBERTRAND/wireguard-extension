@@ -71,53 +71,37 @@ const WGPreferences = class {
             });
             _file_select.set_default_filter(_file_filter);
             
-                //Present the file chooser
-                _file_select.open(null,_cancel,(dialog, async_result)=>{
-                    
-                    //Create a signal to listen to connection is added and remove the autoconnect
-                    let _connect_signal = _client.connect('connection-added',(client, connection) =>{
-                        if ( connection.get_setting_connection().autoconnect){
-                            connection.get_setting_connection().autoconnect=false;
-                            connection.commit_changes_async(true,_cancel,null);
+                //Create a signal to listen to connection added and when added remove the autoconnect
+                let _connect_signal = _client.connect('connection-added',(client, connection) =>{
+                    if ( connection.get_setting_connection().autoconnect){
+                        connection.get_setting_connection().autoconnect=false;
+                        connection.commit_changes_async(true,_cancel,null);
                         };     
-                    });
-                   
+                    _client.disconnect(_connect_signal);
+                    _connect_signal = null;
+                });
+            
+                //Present the file chooser
+                _file_select.open(null,_cancel,(dialog, async_result)=>{                
                     const selected_file = _file_select.open_finish(async_result);
+                    
                     // Import the file through command line
-                    const arg_command = [ 'nmcli', 'connection', 'import' , 'type' , 'wireguard', 'file', selected_file.get_path() ];
-                
-                    const command_proc = new Gio.Subprocess({
-                        argv: arg_command,
-                        flags: Gio.SubprocessFlags.STDERR_PIPE
-                    });
-                    //Run the process to add the connection
-                    command_proc.init(null);
+                    let [, , stderr, status] = GLib.spawn_command_line_sync(`nmcli connection import type wireguard file "${selected_file.get_path()}"`);
                     
-                    //Wait for the process to finish
-                    command_proc.wait(null);
-                    
-                    // Assign lineBytes and length to the output of Gio.DAtaInputStream.read_line()
-                    const [lineBytes, length] = Gio.DataInputStream.new(command_proc.get_stderr_pipe()).read_line(null);
-                    
-                    //If the length is greater than zero it means that the stderr is not empty. Then display the value
-                    if (length > 0){
-                        // Convert lineBytes into a readable output 
-                        let error_msg = new TextDecoder().decode(lineBytes).trim();
-                        // Display the output
-                        let error_dialog = new Gtk.AlertDialog({
+                    // Show nmcli error if the import failed
+                   if (status !== 0) {
+                        let error_msg = new TextDecoder().decode(stderr).trim();
+                         let error_dialog = new Gtk.AlertDialog({
                             message: 'Failed to import Wireguard configuration',
-                            detail: error_msg,
+                            detail: error_msg || `nmcli exited with status ${status}`,
                             modal: true,
                         });
                         error_dialog.show(null);
                     };
-                    
-                    //Disconnect the signal to remove the autoconnect
-                    _client.disconnect(_connect_signal);
-                    _connect_signal = null;
-                    
-            }); //End of file chooser
-        });
+
+            });
+        }); //End of button cliked
+        
     };
     
     _create_change_icon_rows(icon_group,_cancel){
