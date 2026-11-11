@@ -64,14 +64,12 @@ const WGIndicator = class {
         _client.connect('active-connection-added',(client, active_connection) => {
             if (active_connection.get_uuid() == _connection.get_uuid() ){
                 _wg_switch.setToggleState(true);
-                this._update_icon(client);
             };     
         });
         
         _client.connect('active-connection-removed',(client, active_connection) => {
             if (active_connection.get_uuid() == _connection.get_uuid() ){
                 _wg_switch.setToggleState(false);
-                this._update_icon(client);
             };
         });
         
@@ -148,6 +146,19 @@ class Indicator extends PanelMenu.Button {
         const _connection_added_signal_id = _client.connect('connection-added',(client,connection) => {
             wg_indicator._create_switch(this.menu,connection,client);
         });
+        
+        const _active_connection_added_signal = _client.connect('active-connection-added',(client, active_connection) => {
+            if ( active_connection.type == 'wireguard' ){
+                wg_indicator._update_icon(client);
+            };
+        });
+        
+        const _active_connection_removed_signal = _client.connect('active-connection-removed',(client, active_connection) => {
+            if ( active_connection.type == 'wireguard' ){
+                wg_indicator._update_icon(client);
+            };
+        });
+        
         
         // Create signal when preferecen key is changed then update the icons
         const _settings_changed_signal_id = this.settings.connect('changed',() => {

@@ -5,6 +5,7 @@
   "gettext-domain": "org.local.testwireguard",
   "settings-schema": "org.gnome.shell.extensions.org.local.testwireguard",
   "shell-version": [
-    "50"
+    "50",
+    "51"
   ]
 }

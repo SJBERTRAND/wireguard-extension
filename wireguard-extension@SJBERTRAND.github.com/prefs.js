@@ -20,7 +20,12 @@ const WGPreferences = class {
         const delete_button = new Gtk.Button({
             label: _('Delete')
         });
-        
+        // Create a signal to destroy the row if the connection is removed
+        client.connect('connection-removed',(_client,_connection) => {
+            if ( _connection.get_uuid() == connection.get_uuid() ){
+                group.remove(connection_row);
+            };
+        });
         // Create a signal for when the delete button is pressed
         delete_button.connect('clicked', () => { 
             const _delete_dialog = Adw.AlertDialog.new(_(`Delete Wireguard Connection "${connection.get_id()}" ?`),
@@ -32,10 +37,8 @@ const WGPreferences = class {
             _delete_dialog.set_response_appearance('delete',2);        
             _delete_dialog.connect('response',(dialog,response) => {
                 if (response == 'delete'){
-                    connection.delete_async(_cancel,() =>{
-                        group.remove(connection_row);
-                        connection_row.remove(delete_button);
-                    });
+                    
+                    connection.delete_async(_cancel,null);
                 };
             });   
             _delete_dialog.present(delete_button);   
