@@ -151,9 +151,26 @@ const WGPreferences = class {
             });
         });
         
+        //Reset Icon row
+        let reset_row = new Adw.ActionRow({
+            title:_('Reset Icons to default')
+        });
+        const reset_button = new Gtk.Button({
+            label: _('Reset')
+        });
+        reset_row.add_suffix(reset_button);
+        
+        reset_button.connect('clicked', ()=> {
+             this.settings.reset('inactive');
+             this.settings.reset('active');
+        });
+        
+        
+        
         // Add the rows
         icon_group.add(active_row);
         icon_group.add(inactive_row);
+        icon_group.add(reset_row);
     };
     
 };
